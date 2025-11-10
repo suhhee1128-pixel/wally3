@@ -1,0 +1,118 @@
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.phone-frame {
+  width: 375px;
+  height: 812px;
+  background: #ffffff;
+  border-radius: 47px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.phone-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  position: relative;
+}
+
+.phone-content::-webkit-scrollbar {
+  display: none;
+}
+
+.card-placeholder {
+  background: linear-gradient(135deg, #f6f8fb 0%, #ffffff 100%);
+  border: 2px dashed #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.card-placeholder:hover {
+  border-color: #d1d5db;
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  background: #FFF6F7;
+  color: #000000;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: #FFE8F0;
+  transform: scale(1.02);
+}
+
+.btn-outline {
+  background: #FFF6F7;
+  color: #000000;
+  border: 2px solid #FFE8F0;
+  transition: all 0.3s ease;
+}
+
+.btn-outline:hover {
+  background: #FFE8F0;
+  transform: scale(1.02);
+}
+
+.transaction-item {
+  transition: all 0.2s ease;
+}
+
+.transaction-item:hover {
+  background: #f9fafb;
+  transform: translateX(4px);
+}
+
+.transaction-card {
+  transition: transform 0.2s ease, filter 0.2s ease;
+  filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0));
+}
+
+.transaction-card-expense:hover {
+  filter: drop-shadow(0 0 3px rgba(255, 196, 229, 0.25)) drop-shadow(0 0 3px rgba(255, 182, 222, 0.35));
+}
+
+.transaction-card-income:hover {
+  filter: drop-shadow(0 0 3px rgba(164, 249, 130, 0.35)) drop-shadow(0 0 3px rgba(164, 249, 130, 0.45));
+}
+
+.amount-red {
+  color: #F35DC8;
+}
+
+.amount-green {
+  color: #A4F982;
+}
+
+/* Income/Expense Button Styles */
+.income-button {
+  transition: all 0.3s ease;
+}
+
+.income-button:hover {
+  background: #8FE667 !important;
+  transform: scale(1.02);
+}
+
+.expense-button {
+  transition: all 0.3s ease;
+}
+
+.expense-button:hover {
+  background: #E040B5 !important;
+  transform: scale(1.02);
+}
+
