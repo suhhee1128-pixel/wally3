@@ -1,9 +1,16 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import profileImage from '../assets/profile.jpg';
 
 function ProfilePage() {
   const { user, signOut } = useAuth();
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [nickname, setNickname] = useState('');
+  const [profileImageUrl, setProfileImageUrl] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef(null);
 
   const handleLogout = async () => {
     if (window.confirm('로그아웃하시겠습니까?')) {
@@ -17,6 +24,122 @@ function ProfilePage() {
     user?.email?.split('@')[0] ||
     'Guest';
 
+  const currentProfileImage = user?.user_metadata?.avatar_url || profileImage;
+
+  // 프로필 편집 모달 열기
+  const handleManageProfile = () => {
+    setNickname(displayName);
+    setProfileImageUrl(currentProfileImage);
+    setShowEditModal(true);
+  };
+
+  // 프로필 사진 선택
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 이미지 파일인지 확인
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일만 업로드할 수 있습니다.');
+      return;
+    }
+
+    // 파일 크기 확인 (5MB 제한)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('파일 크기는 5MB 이하여야 합니다.');
+      return;
+    }
+
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProfileImageUrl(reader.result);
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // 프로필 사진 업로드 (Supabase Storage)
+  const uploadProfileImage = async (file) => {
+    if (!user) return null;
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      // 사용자 ID를 폴더명으로 사용하여 RLS 정책과 일치시킴
+      const filePath = `${user.id}/${fileName}`;
+
+      // Supabase Storage에 업로드
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true  // 같은 파일이 있으면 덮어쓰기
+        });
+
+      if (uploadError) {
+        console.error('Storage upload failed:', uploadError);
+        // Storage bucket이 없거나 권한 문제일 수 있음
+        alert('사진 업로드에 실패했습니다. Supabase Storage 설정을 확인해주세요.');
+        return null;
+      }
+
+      // Public URL 가져오기
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      console.log('Image uploaded successfully:', publicUrl);
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('사진 업로드 중 오류가 발생했습니다.');
+      return null;
+    }
+  };
+
+  // 프로필 저장
+  const handleSaveProfile = async () => {
+    if (!user) return;
+
+    setSaving(true);
+    try {
+      let avatarUrl = profileImageUrl;
+
+      // 새 이미지가 선택되었고 data URL인 경우
+      if (fileInputRef.current?.files?.[0] && profileImageUrl?.startsWith('data:')) {
+        const uploadedUrl = await uploadProfileImage(fileInputRef.current.files[0]);
+        if (uploadedUrl) {
+          avatarUrl = uploadedUrl;
+        }
+        // 업로드 실패해도 data URL 사용
+      }
+
+      // Supabase user metadata 업데이트
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          name: nickname,
+          nickname: nickname,
+          avatar_url: avatarUrl
+        }
+      });
+
+      if (error) throw error;
+
+      // 성공 메시지
+      alert('프로필이 업데이트되었습니다!');
+      setShowEditModal(false);
+      
+      // 페이지 새로고침하여 변경사항 반영
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('프로필 업데이트 중 오류가 발생했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Account 섹션 아이템
   const accountItems = [
     {
@@ -25,7 +148,8 @@ function ProfilePage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
         </svg>
       ),
-      label: 'Manage Profile'
+      label: 'Manage Profile',
+      onClick: handleManageProfile
     },
     {
       icon: (
@@ -128,7 +252,7 @@ function ProfilePage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 pb-24 relative">
       <div className="px-6 pt-4 pb-6">
         <h1 className="text-xl font-semibold text-gray-900 text-center mb-6">Profile</h1>
 
@@ -137,7 +261,7 @@ function ProfilePage() {
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
               <img 
-                src={profileImage} 
+                src={currentProfileImage} 
                 alt="Profile" 
                 className="w-full h-full object-cover"
               />
@@ -157,7 +281,105 @@ function ProfilePage() {
 
         {/* Support 섹션 */}
         <Section title="Support" items={supportItems} />
+
+        {/* Logout 버튼 */}
+        <div className="mt-6">
+          <button
+            onClick={handleLogout}
+            className="w-full bg-white rounded-2xl shadow-sm py-4 px-5 flex items-center justify-center gap-3 hover:bg-red-50 transition-colors group"
+          >
+            <svg 
+              className="w-5 h-5 text-red-500 group-hover:text-red-600" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth="2" 
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" 
+              />
+            </svg>
+            <span className="text-sm font-medium text-red-500 group-hover:text-red-600">
+              Logout
+            </span>
+          </button>
+        </div>
       </div>
+
+      {/* 프로필 편집 모달 */}
+      {showEditModal && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-16">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[calc(100%-2rem)] max-h-[calc(100%-2rem)] overflow-y-auto p-6 mt-4">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">프로필 편집</h2>
+            
+            {/* 프로필 사진 */}
+            <div className="flex flex-col items-center mb-6">
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-100">
+                  <img 
+                    src={profileImageUrl || currentProfileImage} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                {uploading && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-full">
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="mt-3 text-sm text-[#F35DC8] font-medium hover:text-[#E040B5] disabled:opacity-50"
+              >
+                {uploading ? '업로드 중...' : '사진 변경'}
+              </button>
+            </div>
+
+            {/* 닉네임 입력 */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                닉네임
+              </label>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="닉네임을 입력하세요"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F35DC8] focus:border-transparent"
+                maxLength={20}
+              />
+            </div>
+
+            {/* 버튼 */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSaveProfile}
+                disabled={saving || !nickname.trim()}
+                className="flex-1 px-4 py-3 bg-[#F35DC8] text-white rounded-lg font-medium hover:bg-[#E040B5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {saving ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

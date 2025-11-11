@@ -6,7 +6,9 @@ const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJI
 console.log('Initializing Supabase client:', { 
   url: supabaseUrl, 
   hasKey: !!supabaseAnonKey,
-  keyLength: supabaseAnonKey?.length 
+  keyLength: supabaseAnonKey?.length,
+  envUrl: process.env.REACT_APP_SUPABASE_URL ? '✅ .env에서 로드됨' : '❌ .env에서 로드 안됨 (기본값 사용)',
+  envKey: process.env.REACT_APP_SUPABASE_ANON_KEY ? '✅ .env에서 로드됨' : '❌ .env에서 로드 안됨 (기본값 사용)'
 });
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)

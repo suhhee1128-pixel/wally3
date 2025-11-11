@@ -6,6 +6,13 @@ import { loadUserSettings, saveUserSettings, migrateSettingsFromLocalStorage } f
 const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY || '';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
+// 디버깅: 환경 변수 로드 확인
+console.log('Gemini API Key:', {
+  hasKey: !!GEMINI_API_KEY,
+  keyLength: GEMINI_API_KEY?.length,
+  fromEnv: process.env.REACT_APP_GEMINI_API_KEY ? '✅ .env에서 로드됨' : '❌ .env에서 로드 안됨'
+});
+
 const STORAGE_KEY = 'chatty_wallet_messages';
 
 // AI 설정 정의
@@ -238,13 +245,15 @@ function ChatPage({ transactions }) {
 
     setLoadingMessages(true);
     try {
-      // Load messages from both AIs and user messages
+      // Load recent 50 messages only (for performance)
+      // Note: Older messages are still in database, just not loaded
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .eq('user_id', user.id)
         .or('ai_type.eq.catty,ai_type.eq.futureme,ai_type.is.null')
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })  // Get newest first
+        .limit(50);  // Limit to 50 most recent messages
 
       if (error) {
         console.error('Error loading messages from Supabase:', error);
