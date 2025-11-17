@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { trackLogout } from '../lib/analytics';
 import profileImage from '../assets/profile.jpg';
 
 function ProfilePage() {
@@ -14,6 +15,7 @@ function ProfilePage() {
 
   const handleLogout = async () => {
     if (window.confirm('로그아웃하시겠습니까?')) {
+      trackLogout(); // 로그아웃 추적
       await signOut();
     }
   };

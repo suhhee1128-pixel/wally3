@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Analytics } from '@vercel/analytics/react';
+import { initGA, trackPageView, trackLogin, trackLogout } from './lib/analytics';
 import SpendingPage from './components/SpendingPage';
 import ChatPage from './components/ChatPage';
 import AnalyticsPage from './components/AnalyticsPage';
@@ -24,6 +25,22 @@ function AppContent() {
   const [showSplash, setShowSplash] = useState(true);
   const [shouldShowTracker, setShouldShowTracker] = useState(false);
 
+  // Google Analytics 초기화
+  useEffect(() => {
+    const gaMeasurementId = process.env.REACT_APP_GA_MEASUREMENT_ID;
+    if (gaMeasurementId) {
+      initGA(gaMeasurementId);
+    }
+  }, []);
+
+  // 페이지 변경 추적
+  useEffect(() => {
+    if (!showSplash && !loading) {
+      const pageName = dailySpendingDate !== null ? 'daily-spending' : currentPage;
+      trackPageView(`/${pageName}`);
+    }
+  }, [currentPage, dailySpendingDate, showSplash, loading]);
+
   // 스플래시 스크린 표시 (새로고침할 때마다)
   useEffect(() => {
     // 스플래시 스크린을 3초간 표시한 후 AuthPage로 전환
@@ -36,6 +53,7 @@ function AppContent() {
   // Load transactions from Supabase when user logs in
   useEffect(() => {
     if (user) {
+      trackLogin('email'); // 로그인 추적
       loadTransactions();
       migrateLocalDataToSupabase();
     } else {

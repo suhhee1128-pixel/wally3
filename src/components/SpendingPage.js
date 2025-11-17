@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { loadUserSettings, saveUserSettings, migrateSettingsFromLocalStorage } from '../lib/userSettings';
 import { supabase } from '../lib/supabase';
+import { trackTransactionAdded } from '../lib/analytics';
 
 const STORAGE_KEY_CATEGORIES = 'chatty_wallet_expense_categories';
 const DEFAULT_CATEGORIES = ['shopping', 'food', 'transport', 'entertainment'];
@@ -532,6 +533,11 @@ function SpendingPage({ transactions, setTransactions, onDeleteTransaction }) {
       mood: transactionType === 'expense' ? mood : null,
       notes: notes.trim() || null
     };
+    
+    // Track transaction added event
+    if (transactionType === 'expense') {
+      trackTransactionAdded(parseFloat(amount), category);
+    }
     
     // Update local state immediately
     setTransactions([newTransaction, ...transactions]);

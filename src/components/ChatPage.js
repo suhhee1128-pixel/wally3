@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { loadUserSettings, saveUserSettings, migrateSettingsFromLocalStorage } from '../lib/userSettings';
+import { trackAIChat } from '../lib/analytics';
 
 // Edge Function을 사용하므로 클라이언트에서 API 키가 필요 없음
 // API 키는 Supabase Edge Function에서만 사용됨 (서버에서만 접근 가능)
@@ -1233,6 +1234,8 @@ User message: ${userMessage}`;
       enabledAIs.map(async (aiId) => {
         try {
           const response = await sendMessageToGemini(messageText, aiId);
+          // Track AI chat event
+          trackAIChat(aiId, messageText.length);
           return { aiId, response };
         } catch (error) {
           console.error(`Error getting response from ${aiId}:`, error);
