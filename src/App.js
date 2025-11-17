@@ -30,7 +30,9 @@ function AppContent() {
     const gaMeasurementId = process.env.REACT_APP_GA_MEASUREMENT_ID || 'G-PEW2CSJ9GW'; // Fallback to hardcoded ID
     console.log('GA Measurement ID:', gaMeasurementId, 'from env:', process.env.REACT_APP_GA_MEASUREMENT_ID);
     if (gaMeasurementId) {
-      initGA(gaMeasurementId);
+      initGA(gaMeasurementId).catch(error => {
+        console.error('Failed to initialize GA:', error);
+      });
     } else {
       console.warn('Google Analytics Measurement ID not found');
     }
