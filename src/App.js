@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Analytics } from '@vercel/analytics/react';
-import { initGA, trackPageView, trackLogin, trackLogout } from './lib/analytics';
+import { trackPageView, trackLogin, trackLogout } from './lib/analytics';
 import SpendingPage from './components/SpendingPage';
 import ChatPage from './components/ChatPage';
 import AnalyticsPage from './components/AnalyticsPage';
@@ -25,20 +25,7 @@ function AppContent() {
   const [showSplash, setShowSplash] = useState(true);
   const [shouldShowTracker, setShouldShowTracker] = useState(false);
 
-  // Google Analytics 초기화
-  useEffect(() => {
-    const gaMeasurementId = process.env.REACT_APP_GA_MEASUREMENT_ID || 'G-PEW2CSJ9GW'; // Fallback to hardcoded ID
-    console.log('GA Measurement ID:', gaMeasurementId, 'from env:', process.env.REACT_APP_GA_MEASUREMENT_ID);
-    if (gaMeasurementId) {
-      initGA(gaMeasurementId).catch(error => {
-        console.error('Failed to initialize GA:', error);
-      });
-    } else {
-      console.warn('Google Analytics Measurement ID not found');
-    }
-  }, []);
-
-  // 페이지 변경 추적
+  // 페이지 변경 추적 (Google Analytics는 index.js에서 이미 초기화됨)
   useEffect(() => {
     if (!showSplash && !loading) {
       const pageName = dailySpendingDate !== null ? 'daily-spending' : currentPage;
