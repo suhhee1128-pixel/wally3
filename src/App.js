@@ -27,9 +27,12 @@ function AppContent() {
 
   // Google Analytics 초기화
   useEffect(() => {
-    const gaMeasurementId = process.env.REACT_APP_GA_MEASUREMENT_ID;
+    const gaMeasurementId = process.env.REACT_APP_GA_MEASUREMENT_ID || 'G-PEW2CSJ9GW'; // Fallback to hardcoded ID
+    console.log('GA Measurement ID:', gaMeasurementId, 'from env:', process.env.REACT_APP_GA_MEASUREMENT_ID);
     if (gaMeasurementId) {
       initGA(gaMeasurementId);
+    } else {
+      console.warn('Google Analytics Measurement ID not found');
     }
   }, []);
 
