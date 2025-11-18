@@ -118,24 +118,41 @@ export const AuthProvider = ({ children }) => {
 
   const signInWithGoogle = async () => {
     try {
-      // 모바일 인앱 브라우저 감지
-      const isInAppBrowser = /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)|Android.*(wv|\.0\.0\.0)/i.test(navigator.userAgent);
+      // 모바일 인앱 브라우저 감지 (더 강화된 감지)
+      const ua = navigator.userAgent || navigator.vendor || window.opera;
+      const isInAppBrowser = 
+        // iOS 인앱 브라우저
+        (/iPhone|iPod|iPad/i.test(ua) && !/Safari/i.test(ua)) ||
+        // Android 인앱 브라우저
+        (/Android/i.test(ua) && /wv|\.0\.0\.0/i.test(ua)) ||
+        // 기타 인앱 브라우저 패턴
+        /FBAN|FBAV|Line|KakaoTalk|Instagram|Naver/i.test(ua) ||
+        // WebView 감지
+        (window.navigator.standalone === false || window.matchMedia('(display-mode: standalone)').matches === false && /iPhone|iPad|iPod/i.test(ua));
       
       if (isInAppBrowser) {
-        // 인앱 브라우저인 경우 외부 브라우저로 리다이렉트
-        const redirectUrl = encodeURIComponent(window.location.origin);
-        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://ydlmkmgwxinfbhqbdben.supabase.co';
-        const authUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${redirectUrl}`;
+        // 인앱 브라우저인 경우 사용자에게 명확한 안내
+        const useExternalBrowser = window.confirm(
+          '인앱 브라우저에서는 Google 로그인이 제한됩니다.\n\n' +
+          'Chrome 또는 Safari 앱을 열고 다음 주소로 접속해주세요:\n' +
+          window.location.origin + '\n\n' +
+          '외부 브라우저로 열까요?'
+        );
         
-        // 외부 브라우저로 열기 시도
-        if (window.open) {
-          window.open(authUrl, '_blank');
-        } else {
-          // window.open이 차단된 경우 사용자에게 안내
-          alert('모바일 브라우저(Chrome 또는 Safari)에서 직접 접속해주세요.');
-          return { data: null, error: { message: 'Please use external browser' } };
+        if (useExternalBrowser) {
+          // 외부 브라우저로 열기 시도
+          const redirectUrl = encodeURIComponent(window.location.origin);
+          const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://ydlmkmgwxinfbhqbdben.supabase.co';
+          const authUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${redirectUrl}`;
+          
+          // iOS의 경우 특별 처리
+          if (/iPhone|iPad|iPod/i.test(ua)) {
+            window.location.href = authUrl;
+          } else {
+            window.open(authUrl, '_system');
+          }
         }
-        return { data: null, error: null };
+        return { data: null, error: { message: 'Please use external browser (Chrome or Safari)' } };
       }
       
       // 일반 브라우저인 경우 정상적으로 처리
