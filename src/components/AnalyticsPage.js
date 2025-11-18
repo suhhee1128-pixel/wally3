@@ -36,6 +36,9 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
   const [activityView, setActivityView] = useState('monthly');
   const [showTrackerDetail, setShowTrackerDetail] = useState(autoOpenTracker);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerMonth, setDatePickerMonth] = useState(new Date().getMonth());
+  const [datePickerYear, setDatePickerYear] = useState(new Date().getFullYear());
 
   // Handle autoOpenTracker prop change
   useEffect(() => {
@@ -558,7 +561,46 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
               if (isClickable && onDateClick) {
                 console.log('Date clicked:', dateKey, 'isClickable:', isClickable);
                 setShowTrackerDetail(false);
-                onDateClick(dateKey);
+                
+                // 해당 날짜가 속한 주의 모든 날짜에 대한 상태를 생성
+                const clickedDate = new Date(date);
+                const clickedDayOfWeek = clickedDate.getDay(); // 0 = Sunday, 6 = Saturday
+                const weekStart = new Date(clickedDate);
+                weekStart.setDate(clickedDate.getDate() - clickedDayOfWeek);
+                
+                const statusesByDay = {};
+                // 해당 주의 7일 동안의 상태를 생성
+                for (let i = 0; i < 7; i++) {
+                  const weekDate = new Date(weekStart);
+                  weekDate.setDate(weekStart.getDate() + i);
+                  const weekDateKey = `${weekDate.getFullYear()}-${String(weekDate.getMonth() + 1).padStart(2, '0')}-${String(weekDate.getDate()).padStart(2, '0')}`;
+                  
+                  // dateArray에서 해당 날짜의 인덱스를 찾기
+                  const weekDateIndex = dateArray.findIndex(d => {
+                    const dKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    return dKey === weekDateKey;
+                  });
+                  
+                  if (weekDateIndex !== -1) {
+                    const weekLevel = activityData[weekDateIndex] || 'inactive';
+                    // DailySpendingPage에서 사용하는 상태 형식으로 변환
+                    if (weekLevel === 'exceeded') {
+                      statusesByDay[weekDate.getDate()] = 'exceeded';
+                    } else if (weekLevel === 'good') {
+                      statusesByDay[weekDate.getDate()] = 'good';
+                    } else {
+                      statusesByDay[weekDate.getDate()] = 'inactive';
+                    }
+                  } else {
+                    // 날짜가 현재 달의 dateArray에 없으면 inactive로 설정
+                    statusesByDay[weekDate.getDate()] = 'inactive';
+                  }
+                }
+                
+                onDateClick(dateKey, {
+                  day: dayNumber,
+                  statusesByDay: statusesByDay
+                });
               } else {
                 console.log('Date not clickable:', dateKey, 'isClickable:', isClickable, 'onDateClick:', !!onDateClick);
               }
@@ -1085,27 +1127,25 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
           className="rounded-[12px] border border-gray-200 bg-white px-5 py-5 flex flex-col text-left transition hover:bg-[#FDF2F8] hover:border-black/30 focus:outline-none"
         >
           <div className="flex items-center justify-between mb-6">
-            <p className="text-sm font-semibold text-gray-600">Daily Goal</p>
+            <p className="text-sm font-semibold text-gray-600">Daily Goal Tracking</p>
             <span className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-[#F35DC8] text-[#F35DC8] bg-white flex-shrink-0">
-              <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: 'rotate(-45deg)' }}>
                 <path d="M4 10H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 <path d="M12 6L16 10L12 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </span>
           </div>
           <p className="text-3xl font-semibold text-black tracking-tight mt-auto">
-            ${formatCurrency(Number.isFinite(dailyGoal) ? dailyGoal : 0)}
+            ${(Number.isFinite(dailyGoal) ? dailyGoal : 0).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
           </p>
         </button>
 
         <div className="rounded-[12px] border border-gray-200 bg-white px-5 py-5 flex flex-col">
           <div className="flex items-center justify-between mb-6">
-            <p className="text-sm font-semibold text-gray-600">Current Streak</p>
-            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-[#F35DC8] text-[#F35DC8] bg-white">
-              <svg width="16" height="12" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: 'scaleX(1.2)' }}>
-                <path d="M6 10L9 13L14 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
+            <div className="flex flex-col">
+              <p className="text-sm font-semibold text-gray-600">Current</p>
+              <p className="text-sm font-semibold text-gray-600">Streak</p>
+            </div>
           </div>
           <p className="text-3xl font-semibold text-black tracking-tight mt-auto">
             {goalStreak} {goalStreak === 1 ? 'day' : 'days'}
@@ -1160,14 +1200,38 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
                   onChange={(e) => setStartDateInput(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black pr-10 text-black"
                   style={{ 
-                    colorScheme: 'light'
+                    colorScheme: 'light',
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'textfield'
                   }}
                 />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <style>{`
+                  input[type="date"]::-webkit-calendar-picker-indicator {
+                    display: none;
+                  }
+                  input[type="date"]::-webkit-inner-spin-button,
+                  input[type="date"]::-webkit-outer-spin-button {
+                    -webkit-appearance: none;
+                    margin: 0;
+                  }
+                `}</style>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentDate = startDateInput || startDate;
+                    if (currentDate) {
+                      const [year, month] = currentDate.split('-');
+                      setDatePickerYear(parseInt(year, 10));
+                      setDatePickerMonth(parseInt(month, 10) - 1);
+                    }
+                    setShowDatePicker(true);
+                  }}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                </div>
+                </button>
               </div>
             </div>
             
@@ -1208,6 +1272,125 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
               >
                 Set
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Date Picker Modal */}
+      {showDatePicker && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-[16px] p-4 w-[85%] max-w-xs mx-4 shadow-xl">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-semibold text-black">Select Date</h3>
+              <button
+                onClick={() => setShowDatePicker(false)}
+                className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M15 5L5 15M5 5L15 15"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Month/Year Navigation */}
+            <div className="flex items-center justify-between mb-3">
+              <button
+                onClick={() => {
+                  if (datePickerMonth === 0) {
+                    setDatePickerMonth(11);
+                    setDatePickerYear(datePickerYear - 1);
+                  } else {
+                    setDatePickerMonth(datePickerMonth - 1);
+                  }
+                }}
+                className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 4L6 10L12 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <div className="text-sm font-semibold text-black">
+                {MONTH_LABELS[datePickerMonth]} {datePickerYear}
+              </div>
+              <button
+                onClick={() => {
+                  if (datePickerMonth === 11) {
+                    setDatePickerMonth(0);
+                    setDatePickerYear(datePickerYear + 1);
+                  } else {
+                    setDatePickerMonth(datePickerMonth + 1);
+                  }
+                }}
+                className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 4L14 10L8 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Weekday Headers */}
+            <div className="grid grid-cols-7 gap-0.5 mb-1">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                <div key={day} className="text-center text-xs text-gray-500 font-medium py-1">
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar Grid */}
+            <div className="grid grid-cols-7 gap-0.5">
+              {(() => {
+                const firstDayOfMonth = new Date(datePickerYear, datePickerMonth, 1);
+                const lastDayOfMonth = new Date(datePickerYear, datePickerMonth + 1, 0);
+                const firstDayWeekday = firstDayOfMonth.getDay();
+                const daysInMonth = lastDayOfMonth.getDate();
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const days = [];
+                
+                // Empty cells for days before the first day of the month
+                for (let i = 0; i < firstDayWeekday; i++) {
+                  days.push(<div key={`empty-${i}`} className="aspect-square"></div>);
+                }
+                
+                // Days of the month
+                for (let day = 1; day <= daysInMonth; day++) {
+                  const date = new Date(datePickerYear, datePickerMonth, day);
+                  const dateString = `${datePickerYear}-${String(datePickerMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                  const isToday = date.getTime() === today.getTime();
+                  const isSelected = dateString === (startDateInput || startDate);
+                  
+                  days.push(
+                    <button
+                      key={day}
+                      onClick={() => {
+                        setStartDateInput(dateString);
+                        setShowDatePicker(false);
+                      }}
+                      className={`aspect-square rounded-md text-xs font-medium transition-colors ${
+                        isSelected
+                          ? 'bg-black text-white'
+                          : isToday
+                          ? 'bg-gray-100 text-black font-semibold'
+                          : 'hover:bg-gray-100 text-black'
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  );
+                }
+                
+                return days;
+              })()}
             </div>
           </div>
         </div>

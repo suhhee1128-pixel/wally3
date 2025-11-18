@@ -163,11 +163,20 @@ function DailySpendingPage({ transactions = [], selectedDate, onBack, currentDay
             const isSelected = date === actualSelectedDate;
             const status = dayStatuses ? dayStatuses[date] : undefined;
             const isDisabled = date > actualCurrentDay;
+            
+            // 선택된 날짜의 원 색상 결정 (상태에 따라)
             let buttonClasses = 'w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all ';
             if (isDisabled) {
               buttonClasses += 'bg-gray-100 text-gray-400 cursor-not-allowed';
             } else if (isSelected) {
-              buttonClasses += 'bg-black text-white';
+              // 선택된 날짜는 상태에 따라 색상 변경
+              if (status === 'exceeded') {
+                buttonClasses += 'bg-[#F35DC8] text-white';
+              } else if (status === 'good') {
+                buttonClasses += 'bg-[#A4F982] text-black';
+              } else {
+                buttonClasses += 'bg-black text-white';
+              }
             } else if (status === 'exceeded') {
               buttonClasses += 'bg-[#F35DC8] text-white hover:brightness-110';
             } else if (status === 'good') {
@@ -177,9 +186,28 @@ function DailySpendingPage({ transactions = [], selectedDate, onBack, currentDay
             } else {
               buttonClasses += 'bg-[#F1F5F9] text-gray-600 hover:bg-gray-200';
             }
+            
+            // 선택된 날짜의 배경 박스 색상 결정
+            let backgroundBoxClass = '';
+            let textColorClass = 'text-gray-500';
+            if (isSelected) {
+              if (status === 'exceeded') {
+                backgroundBoxClass = 'bg-[#F35DC8]/20'; // 연한 핑크색
+                textColorClass = 'text-gray-700';
+              } else if (status === 'good') {
+                backgroundBoxClass = 'bg-[#A4F982]/30'; // 연한 녹색
+                textColorClass = 'text-gray-700';
+              } else {
+                backgroundBoxClass = 'bg-gray-100'; // 기본 회색
+              }
+            }
+            
             return (
-              <div key={day} className="flex flex-col items-center">
-                <div className="text-xs text-gray-500 mb-2">{day}</div>
+              <div 
+                key={day} 
+                className={`flex flex-col items-center px-2 pt-2 pb-2 mx-1 transition-all`}
+              >
+                <div className={`text-xs ${textColorClass} mb-2 h-6 flex items-center justify-center ${isSelected && backgroundBoxClass ? `${backgroundBoxClass} rounded-[8px] px-2 py-1` : ''}`}>{day}</div>
                 <button
                   onClick={() => {
                     if (!isDisabled && onBack) {
@@ -207,17 +235,35 @@ function DailySpendingPage({ transactions = [], selectedDate, onBack, currentDay
         <h2 className="text-xl font-bold text-black mb-4">Categories</h2>
         <div className="grid grid-cols-3 gap-3">
           {allCategories.slice(0, 3).map(({ category, amount, colorInfo }) => {
+            // 최대 금액 계산 (0이 아닌 경우)
+            const maxAmount = Math.max(...allCategories.slice(0, 3).map(c => c.amount), 1);
+            // 비율 계산 (최소 5%는 표시)
+            const percentage = maxAmount > 0 ? Math.max((amount / maxAmount) * 100, amount > 0 ? 5 : 0) : 0;
+            
             return (
               <div
                 key={category}
-                className="rounded-[12px] p-4 flex flex-col items-center justify-center"
+                className="rounded-[12px] bg-gray-100 flex flex-col justify-end relative overflow-hidden"
                 style={{ 
-                  backgroundColor: colorInfo.bg,
-                  minHeight: '100px'
+                  minHeight: '120px',
+                  height: '120px'
                 }}
               >
-                <div className="text-xs text-black opacity-60 mb-1">{colorInfo.name}</div>
-                <div className="text-xl font-bold text-black">${Math.round(amount)}</div>
+                {/* 색상이 차오르는 부분 */}
+                <div
+                  className="w-full flex flex-col items-center justify-end relative"
+                  style={{
+                    height: `${percentage}%`,
+                    backgroundColor: colorInfo.bg,
+                    transition: 'height 0.3s ease'
+                  }}
+                >
+                  {/* 카테고리 이름과 금액 */}
+                  <div className="absolute bottom-0 left-0 right-0 p-3 flex flex-col items-center justify-center">
+                    <div className="text-xs text-black opacity-60 mb-1">{colorInfo.name}</div>
+                    <div className="text-xl font-bold text-black">${Math.round(amount)}</div>
+                  </div>
+                </div>
               </div>
             );
           })}

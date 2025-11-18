@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import LoadingIcon from './LoadingIcon';
 
 function MoodPage({ transactions = [] }) {
@@ -49,6 +49,8 @@ function MoodPage({ transactions = [] }) {
   );
 
   const [selectedMood, setSelectedMood] = useState(null);
+  const modalRef = useRef(null);
+
 
   const formatCurrency = (value) =>
     value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -126,7 +128,16 @@ function MoodPage({ transactions = [] }) {
             className="absolute inset-0 bg-black bg-opacity-40 z-[100]"
             onClick={() => setSelectedMood(null)}
           ></div>
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[16px] p-6 z-[101] max-h-[85vh] overflow-y-auto shadow-xl">
+          <div 
+            ref={modalRef}
+            className="absolute inset-x-0 bg-white rounded-t-[16px] p-6 z-[101] flex flex-col shadow-xl"
+            style={{ 
+              top: '20%',
+              bottom: '0',
+              maxHeight: '80vh'
+            }}
+          >
+            <div className="overflow-y-auto flex-1 hide-scrollbar">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">
@@ -198,6 +209,7 @@ function MoodPage({ transactions = [] }) {
                 ))}
               </div>
             )}
+            </div>
           </div>
         </>
       )}
