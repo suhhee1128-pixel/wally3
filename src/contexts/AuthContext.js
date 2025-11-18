@@ -17,8 +17,16 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting session:', error);
+        // 에러가 발생해도 loading을 false로 설정하여 앱이 계속 실행되도록 함
+      }
       setUser(session?.user ?? null);
+      setLoading(false);
+    }).catch(err => {
+      console.error('Exception getting session:', err);
+      // 예외가 발생해도 loading을 false로 설정하여 앱이 계속 실행되도록 함
       setLoading(false);
     });
 
@@ -110,10 +118,36 @@ export const AuthProvider = ({ children }) => {
 
   const signInWithGoogle = async () => {
     try {
+      // 모바일 인앱 브라우저 감지
+      const isInAppBrowser = /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)|Android.*(wv|\.0\.0\.0)/i.test(navigator.userAgent);
+      
+      if (isInAppBrowser) {
+        // 인앱 브라우저인 경우 외부 브라우저로 리다이렉트
+        const redirectUrl = encodeURIComponent(window.location.origin);
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://ydlmkmgwxinfbhqbdben.supabase.co';
+        const authUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${redirectUrl}`;
+        
+        // 외부 브라우저로 열기 시도
+        if (window.open) {
+          window.open(authUrl, '_blank');
+        } else {
+          // window.open이 차단된 경우 사용자에게 안내
+          alert('모바일 브라우저(Chrome 또는 Safari)에서 직접 접속해주세요.');
+          return { data: null, error: { message: 'Please use external browser' } };
+        }
+        return { data: null, error: null };
+      }
+      
+      // 일반 브라우저인 경우 정상적으로 처리
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+          skipBrowserRedirect: false,
         },
       });
       if (error) throw error;
