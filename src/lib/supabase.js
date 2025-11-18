@@ -13,12 +13,18 @@ console.log('Initializing Supabase client:', {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Test connection
-supabase.auth.getSession().then(({ data, error }) => {
-  if (error) {
-    console.error('Supabase connection test failed:', error);
-  } else {
-    console.log('Supabase connection test successful');
-  }
-});
+// Test connection (비동기, 블로킹하지 않음)
+setTimeout(() => {
+  supabase.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      console.error('Supabase connection test failed:', error);
+      // 연결 실패해도 앱은 계속 실행됨
+    } else {
+      console.log('Supabase connection test successful');
+    }
+  }).catch(err => {
+    console.error('Supabase connection test error:', err);
+    // 에러가 발생해도 앱은 계속 실행됨
+  });
+}, 100);
 

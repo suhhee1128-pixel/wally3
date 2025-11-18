@@ -12,6 +12,7 @@ import AuthPage from './components/AuthPage';
 import SplashScreen from './components/SplashScreen';
 import NavigationBar from './components/NavigationBar';
 import StatusBar from './components/StatusBar';
+import ErrorBoundary from './components/ErrorBoundary';
 import { supabase } from './lib/supabase';
 import './App.css';
 
@@ -301,10 +302,12 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-      <Analytics />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+        <Analytics />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

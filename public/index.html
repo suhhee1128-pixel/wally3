@@ -16,7 +16,7 @@
     </script>
     
     <link href="https://fonts.cdnfonts.com/css/aldrich" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com" onerror="console.error('Tailwind CDN failed to load')"></script>
     <style>
         * {
             font-family: 'Aldrich', 'Helvetica', Arial, sans-serif;
@@ -28,6 +28,11 @@
             margin: 0;
             padding: 0;
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        
+        /* Tailwind CDN 실패 시 기본 스타일 */
+        #root {
+            min-height: 100vh;
         }
     </style>
 </head>

@@ -43,8 +43,13 @@ export const initGA = async (measurementId) => {
   }
 
   try {
-    // 먼저 gtag.js 스크립트 로드
-    await loadGtagScript(measurementId);
+    // 먼저 gtag.js 스크립트 로드 (타임아웃 설정)
+    await Promise.race([
+      loadGtagScript(measurementId),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('GA script load timeout')), 5000)
+      )
+    ]);
     
     // 그 다음 react-ga4 초기화
     ReactGA.initialize(measurementId, {
@@ -52,10 +57,9 @@ export const initGA = async (measurementId) => {
     });
     
     console.log('Google Analytics initialized:', measurementId);
-    console.log('dataLayer:', window.dataLayer);
-    console.log('gtag function:', typeof window.gtag);
   } catch (error) {
     console.error('Failed to initialize Google Analytics:', error);
+    // GA 초기화 실패해도 앱은 계속 실행됨
   }
 };
 
