@@ -1,15 +1,23 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://ydlmkmgwxinfbhqbdben.supabase.co'
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkbG1rbWd3eGluZmJocWJkYmVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNzE1MzMsImV4cCI6MjA3Nzg0NzUzM30.XEDXjp2FuA1x-Vbb7rD2uqx_GKauksdTAt9Jc7zqqXs'
+// 환경 변수에서 Supabase 설정 가져오기
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
 
-console.log('Initializing Supabase client:', { 
-  url: supabaseUrl, 
-  hasKey: !!supabaseAnonKey,
-  keyLength: supabaseAnonKey?.length,
-  envUrl: process.env.REACT_APP_SUPABASE_URL ? '✅ .env에서 로드됨' : '❌ .env에서 로드 안됨 (기본값 사용)',
-  envKey: process.env.REACT_APP_SUPABASE_ANON_KEY ? '✅ .env에서 로드됨' : '❌ .env에서 로드 안됨 (기본값 사용)'
-});
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables. Please set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY in your .env file.')
+}
+
+// 개발 환경에서만 초기화 로그 출력
+if (process.env.NODE_ENV === 'development') {
+  console.log('Initializing Supabase client:', { 
+    url: supabaseUrl, 
+    hasKey: !!supabaseAnonKey,
+    keyLength: supabaseAnonKey?.length,
+    envUrl: process.env.REACT_APP_SUPABASE_URL ? '✅ .env에서 로드됨' : '❌ .env에서 로드 안됨',
+    envKey: process.env.REACT_APP_SUPABASE_ANON_KEY ? '✅ .env에서 로드됨' : '❌ .env에서 로드 안됨'
+  });
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
