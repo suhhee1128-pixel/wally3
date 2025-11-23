@@ -25,6 +25,35 @@ body {
   flex-direction: column;
 }
 
+/* 모바일 디바이스 감지 (터치 지원 또는 작은 화면) */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  body {
+    padding: 0;
+    margin: 0;
+  }
+
+  .app-container {
+    padding: 0 !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    width: 100vw !important;
+    max-width: 100% !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    background: transparent !important;
+  }
+  
+  .phone-frame {
+    width: 100% !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+}
+
 .phone-content {
   flex: 1;
   overflow-y: auto;
@@ -122,33 +151,54 @@ body {
   transform: scale(1.02);
 }
 
-/* 모바일 전체 화면 지원 */
-@media (max-width: 768px) {
-  .app-container {
-    padding: 0;
-    height: 100vh;
-    height: 100dvh; /* 동적 뷰포트 높이 */
-  }
-  
-  .phone-frame {
-    width: 100%;
-    height: 100vh;
-    height: 100dvh;
-    border-radius: 0;
-    box-shadow: none;
-  }
+/* JavaScript로 감지된 모바일 디바이스 */
+body.mobile-device .app-container,
+html.mobile-device .app-container {
+  padding: 0 !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  width: 100vw !important;
+  max-width: 100% !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  background: transparent !important;
+}
+
+body.mobile-device .phone-frame,
+html.mobile-device .phone-frame {
+  width: 100% !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-width: 100% !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 !important;
 }
 
 /* iOS Safe Area 지원 (노치 등) */
 @supports (padding: max(0px)) {
-  .phone-frame {
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
+  @media (max-width: 768px), (hover: none) and (pointer: coarse) {
+    .phone-frame {
+      padding-left: env(safe-area-inset-left) !important;
+      padding-right: env(safe-area-inset-right) !important;
+    }
+    
+    .phone-content {
+      padding-top: env(safe-area-inset-top) !important;
+      padding-bottom: env(safe-area-inset-bottom) !important;
+    }
+  }
+
+  body.mobile-device .phone-frame,
+  html.mobile-device .phone-frame {
+    padding-left: env(safe-area-inset-left) !important;
+    padding-right: env(safe-area-inset-right) !important;
   }
   
-  .phone-content {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
+  body.mobile-device .phone-content,
+  html.mobile-device .phone-content {
+    padding-top: env(safe-area-inset-top) !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
   }
 }
 

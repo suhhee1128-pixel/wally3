@@ -34,6 +34,24 @@ function AppContent() {
     }
   }, [currentPage, dailySpendingDate, showSplash, loading]);
 
+  // 모바일 디바이스 감지 및 클래스 추가
+  useEffect(() => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                     (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) ||
+                     ('ontouchstart' in window) ||
+                     (navigator.maxTouchPoints > 0);
+    
+    if (isMobile) {
+      document.body.classList.add('mobile-device');
+      document.documentElement.classList.add('mobile-device');
+    }
+    
+    return () => {
+      document.body.classList.remove('mobile-device');
+      document.documentElement.classList.remove('mobile-device');
+    };
+  }, []);
+
   // 스플래시 스크린 표시 (새로고침할 때마다)
   useEffect(() => {
     // 스플래시 스크린을 3초간 표시한 후 AuthPage로 전환
