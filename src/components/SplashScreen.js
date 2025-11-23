@@ -63,34 +63,21 @@ function SplashScreen() {
       const topY = eyeTop - eyeSize / 2;
 
       
-
-      console.log('Eye positions:', {
-
-        imgWidth,
-
-        imgHeight,
-
-        eyeSize,
-
-        eyeTop,
-
-        eyeLeft,
-
-        eyeRight,
-
-        leftX,
-
-        rightX,
-
-        topY,
-
-        calculatedLeft: `${leftX}px`,
-
-        calculatedRight: `${rightX}px`,
-
-        calculatedTop: `${topY}px`
-
-      });
+      
+      // console.log('Eye positions:', {
+      //   imgWidth,
+      //   imgHeight,
+      //   eyeSize,
+      //   eyeTop,
+      //   eyeLeft,
+      //   eyeRight,
+      //   leftX,
+      //   rightX,
+      //   topY,
+      //   calculatedLeft: `${leftX}px`,
+      //   calculatedRight: `${rightX}px`,
+      //   calculatedTop: `${topY}px`
+      // });
 
       
 
@@ -106,15 +93,15 @@ function SplashScreen() {
 
       
 
-      console.log('Eye positions set:', {
+      // console.log('Eye positions set:', {
 
-        size: eyeSize,
+      //   size: eyeSize,
 
-        left: { x: eyeLeft, y: eyeTop },
+      //   left: { x: eyeLeft, y: eyeTop },
 
-        right: { x: eyeRight, y: eyeTop }
+      //   right: { x: eyeRight, y: eyeTop }
 
-      });
+      // });
 
     }
 
@@ -218,19 +205,13 @@ function SplashScreen() {
 
             {(() => {
 
-              console.log('Render check:', {
-
-                imageLoaded,
-
-                eyePositions,
-
-                hasSize: !!eyePositions.size,
-
-                hasLeft: !!eyePositions.left,
-
-                hasRight: !!eyePositions.right
-
-              });
+              // console.log('Render check:', {
+              //   imageLoaded,
+              //   eyePositions,
+              //   hasSize: !!eyePositions.size,
+              //   hasLeft: !!eyePositions.left,
+              //   hasRight: !!eyePositions.right
+              // });
 
               
 
