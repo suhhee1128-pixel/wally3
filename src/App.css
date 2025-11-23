@@ -73,31 +73,16 @@ body {
     border: none !important;
   }
 
+  .phone-frame {
+    position: relative !important;
+  }
+
   .phone-content {
     width: 100% !important;
     height: 100% !important;
     flex: 1 !important;
     background: #ffffff !important;
-  }
-
-  /* 스플래시 스크린 모바일 전체 화면 */
-  .app-container .phone-frame[style*="background: #9DFF00"],
-  .phone-frame.splash-mobile-fullscreen {
-    width: 100% !important;
-    height: 100vh !important;
-    height: 100dvh !important;
-    max-width: 100% !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #9DFF00 !important;
-  }
-
-  .app-container .phone-content[style*="backgroundColor: #9DFF00"] {
-    width: 100% !important;
-    height: 100% !important;
-    background: #9DFF00 !important;
+    padding-top: calc(44px + env(safe-area-inset-top, 0)) !important; /* StatusBar + 노치 높이만큼 여백 */
   }
 }
 
@@ -250,47 +235,32 @@ html.mobile-device .phone-frame {
   border: none !important;
 }
 
+body.mobile-device .phone-frame,
+html.mobile-device .phone-frame {
+  position: relative !important;
+}
+
 body.mobile-device .phone-content,
 html.mobile-device .phone-content {
   width: 100% !important;
   height: 100% !important;
   flex: 1 !important;
   background: #ffffff !important;
+  padding-top: calc(44px + env(safe-area-inset-top, 0)) !important; /* StatusBar + 노치 높이만큼 여백 */
 }
 
-/* 스플래시 스크린 모바일 전체 화면 (JavaScript 감지) */
-body.mobile-device .app-container .phone-frame[style*="background: #9DFF00"],
-html.mobile-device .app-container .phone-frame[style*="background: #9DFF00"],
-body.mobile-device .phone-frame.splash-mobile-fullscreen,
-html.mobile-device .phone-frame.splash-mobile-fullscreen {
-  width: 100% !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-  max-width: 100% !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  background: #9DFF00 !important;
-}
-
-body.mobile-device .app-container .phone-content[style*="backgroundColor: #9DFF00"],
-html.mobile-device .app-container .phone-content[style*="backgroundColor: #9DFF00"] {
-  width: 100% !important;
-  height: 100% !important;
-  background: #9DFF00 !important;
-}
-
-/* iOS Safe Area 지원 (노치 등) */
+/* iOS Safe Area - 좌우만 지원, 상하 노치 영역 제거 */
 @supports (padding: max(0px)) {
   @media (max-width: 768px), (hover: none) and (pointer: coarse) {
     .phone-frame {
       padding-left: env(safe-area-inset-left) !important;
       padding-right: env(safe-area-inset-right) !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
     }
     
     .phone-content {
-      padding-top: env(safe-area-inset-top) !important;
+      padding-top: 0 !important;
       padding-bottom: env(safe-area-inset-bottom) !important;
     }
   }
@@ -299,11 +269,13 @@ html.mobile-device .app-container .phone-content[style*="backgroundColor: #9DFF0
   html.mobile-device .phone-frame {
     padding-left: env(safe-area-inset-left) !important;
     padding-right: env(safe-area-inset-right) !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
   }
   
   body.mobile-device .phone-content,
   html.mobile-device .phone-content {
-    padding-top: env(safe-area-inset-top) !important;
+    padding-top: 0 !important;
     padding-bottom: env(safe-area-inset-bottom) !important;
   }
 }
