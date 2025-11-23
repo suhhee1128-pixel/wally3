@@ -39,6 +39,31 @@
         #root {
             min-height: 100vh;
         }
+
+        /* 모바일 전체 화면 강제 */
+        @media (max-width: 768px), (hover: none) and (pointer: coarse) {
+            html, body, #root {
+                width: 100% !important;
+                height: 100% !important;
+                height: 100dvh !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            
+            body {
+                position: fixed !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                height: 100dvh !important;
+                overflow: hidden !important;
+            }
+
+            #root {
+                width: 100% !important;
+                height: 100% !important;
+                height: 100dvh !important;
+            }
+        }
     </style>
 </head>
 <body>
