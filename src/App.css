@@ -43,6 +43,10 @@ body {
     height: 100dvh !important;
   }
 
+  body {
+    background: #ffffff !important;
+  }
+
   .app-container {
     padding: 0 !important;
     height: 100vh !important;
@@ -51,7 +55,7 @@ body {
     max-width: 100% !important;
     align-items: stretch !important;
     justify-content: flex-start !important;
-    background: transparent !important;
+    background: #ffffff !important;
   }
   
   .phone-frame {
@@ -62,6 +66,18 @@ body {
     border-radius: 0 !important;
     box-shadow: none !important;
     margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    display: flex !important;
+    flex-direction: column !important;
+    border: none !important;
+  }
+
+  .phone-content {
+    width: 100% !important;
+    height: 100% !important;
+    flex: 1 !important;
+    background: #ffffff !important;
   }
 }
 
@@ -182,6 +198,10 @@ body.mobile-device {
   height: 100dvh !important;
 }
 
+body.mobile-device {
+  background: #ffffff !important;
+}
+
 body.mobile-device .app-container,
 html.mobile-device .app-container {
   padding: 0 !important;
@@ -191,7 +211,7 @@ html.mobile-device .app-container {
   max-width: 100% !important;
   align-items: stretch !important;
   justify-content: flex-start !important;
-  background: transparent !important;
+  background: #ffffff !important;
 }
 
 body.mobile-device .phone-frame,
@@ -203,6 +223,19 @@ html.mobile-device .phone-frame {
   border-radius: 0 !important;
   box-shadow: none !important;
   margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border: none !important;
+}
+
+body.mobile-device .phone-content,
+html.mobile-device .phone-content {
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1 !important;
+  background: #ffffff !important;
 }
 
 /* iOS Safe Area 지원 (노치 등) */
