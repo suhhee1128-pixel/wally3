@@ -231,7 +231,8 @@
         }
 
         // Gemini API Configuration
-        const GEMINI_API_KEY = 'AIzaSyB9FnCBKH7zQf2cWwONvEzD4S3herMziPw';
+        // API 키는 환경 변수나 Edge Function을 통해 사용하세요
+        const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY || '';
         const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
 
         // Chat Page Component
