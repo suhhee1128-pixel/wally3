@@ -624,7 +624,7 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
           </div>
           <div className="mt-2 min-h-[24px] text-[10px] leading-tight text-center flex flex-col items-center justify-center">
             {daySpending > 0 && (
-              <div className="text-red-600 font-medium">
+              <div className="font-medium" style={{ color: '#F35DC8' }}>
                 -${Math.round(daySpending)}
               </div>
             )}
