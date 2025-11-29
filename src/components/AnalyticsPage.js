@@ -570,6 +570,7 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
       days.push(
         <div key={`empty-${i}`} className="flex flex-col items-center justify-center">
           <div className="w-10 h-10 rounded-full"></div>
+          <div className="mt-2 min-h-[24px]"></div>
         </div>
       );
     }
@@ -621,20 +622,18 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
           >
             <span className={`text-sm font-medium ${getTextColor(index)}`}>{dayNumber}</span>
           </div>
-          {(daySpending > 0 || dayIncome > 0) && (
-            <div className="mt-1 text-[10px] leading-tight text-center">
-              {daySpending > 0 && (
-                <div className="text-gray-800">
-                  -${Math.round(daySpending)}
-                </div>
-              )}
-              {dayIncome > 0 && (
-                <div className="text-emerald-600">
-                  +${Math.round(dayIncome)}
-                </div>
-              )}
-            </div>
-          )}
+          <div className="mt-2 min-h-[24px] text-[10px] leading-tight text-center flex flex-col items-center justify-center">
+            {daySpending > 0 && (
+              <div className="text-red-600 font-medium">
+                -${Math.round(daySpending)}
+              </div>
+            )}
+            {dayIncome > 0 && (
+              <div className="text-emerald-600 font-medium">
+                +${Math.round(dayIncome)}
+              </div>
+            )}
+          </div>
         </div>
       );
     });
