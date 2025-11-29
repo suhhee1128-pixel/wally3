@@ -96,6 +96,7 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
   
   // Calculate actual data from transactions
   const expenses = transactions.filter(t => t.type === 'expense');
+  const incomes = transactions.filter(t => t.type === 'income');
   const totalExpenses = expenses.reduce((sum, t) => sum + Math.abs(t.amount), 0);
   const saved = Math.max(0, target - totalExpenses);
   // Calculate spending percentage (지출 기준)
@@ -398,6 +399,57 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
       }
     }
   });
+
+  // Group incomes by actual date (YYYY-MM-DD format for matching)
+  const incomesByDate = {};
+  incomes.forEach(income => {
+    if (income.date) {
+      let incomeDate = null;
+
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const dateMatch = income.date.match(/(\w+)\s+(\d+)/);
+      if (dateMatch) {
+        const monthName = dateMatch[1];
+        const day = parseInt(dateMatch[2], 10);
+        const monthIndex = monthNames.findIndex(m => m === monthName);
+        if (monthIndex !== -1) {
+          let incomeYear = currentYear;
+          if (monthIndex === currentMonth) {
+            incomeYear = currentYear;
+          } else {
+            const todayMonth = new Date().getMonth();
+            const todayYear = new Date().getFullYear();
+            if (monthIndex <= todayMonth) {
+              incomeYear = todayYear;
+            } else {
+              incomeYear = todayYear - 1;
+            }
+          }
+          incomeDate = new Date(incomeYear, monthIndex, day);
+          incomeDate.setHours(0, 0, 0, 0);
+        }
+      }
+
+      if (!incomeDate) {
+        const mmddMatch = income.date.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
+        if (mmddMatch) {
+          const month = parseInt(mmddMatch[1], 10) - 1;
+          const day = parseInt(mmddMatch[2], 10);
+          const year = mmddMatch[3] ? parseInt(mmddMatch[3], 10) : currentYear;
+          incomeDate = new Date(year, month, day);
+          incomeDate.setHours(0, 0, 0, 0);
+        }
+      }
+
+      if (incomeDate && incomeDate.getMonth() === currentMonth && incomeDate.getFullYear() === currentYear) {
+        const dateKey = `${incomeDate.getFullYear()}-${String(incomeDate.getMonth() + 1).padStart(2, '0')}-${String(incomeDate.getDate()).padStart(2, '0')}`;
+        if (!incomesByDate[dateKey]) {
+          incomesByDate[dateKey] = 0;
+        }
+        incomesByDate[dateKey] += Math.abs(income.amount);
+      }
+    }
+  });
   
   // Activity data based on actual spending and dates
   const activityData = {};
@@ -535,6 +587,9 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
       const startTimestamp = selectedStartDate.getTime();
       const endTimestamp = calendarEndDate.getTime();
       const isInGoalPeriod = dateTimestamp >= startTimestamp && dateTimestamp <= endTimestamp;
+
+      const daySpending = expensesByDate[dateKey] || 0;
+      const dayIncome = incomesByDate[dateKey] || 0;
       
       const level = activityData[index] || 'inactive';
       if (dayNumber) {
@@ -566,6 +621,20 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
           >
             <span className={`text-sm font-medium ${getTextColor(index)}`}>{dayNumber}</span>
           </div>
+          {(daySpending > 0 || dayIncome > 0) && (
+            <div className="mt-1 text-[10px] leading-tight text-center">
+              {daySpending > 0 && (
+                <div className="text-gray-800">
+                  -${Math.round(daySpending)}
+                </div>
+              )}
+              {dayIncome > 0 && (
+                <div className="text-emerald-600">
+                  +${Math.round(dayIncome)}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       );
     });
