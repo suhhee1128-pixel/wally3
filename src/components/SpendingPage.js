@@ -1040,7 +1040,7 @@ function SpendingPage({ transactions, setTransactions, onDeleteTransaction }) {
             }}
             onClick={() => {
               setTransactionType('expense');
-              const today = new Date();
+                const today = new Date();
               setTransactionDate(formatDateToYYYYMMDD(today));
               setShowModal(true);
             }}

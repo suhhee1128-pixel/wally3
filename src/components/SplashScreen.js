@@ -23,20 +23,35 @@ function SplashScreen() {
       
 
       // 이미지의 실제 렌더링 크기 가져오기
+
       const imgRect = img.getBoundingClientRect();
+
       
+
       // 이미지 크기 대비 눈 위치 계산
+
       const imgWidth = imgRect.width;
+
       const imgHeight = imgRect.height;
+
       
-      // 눈 크기: 이미지 너비의 약 25%
+
+      // 눈 크기: 이미지 너비의 약 22%
+
       const eyeSize = imgWidth * 0.25;
+
       
+
       // 눈 위치: 상단 중앙 (이미지 설명 기준)
+
       const eyeTop = imgHeight * 0.31; // 상단 31% 위치
+
       const eyeCenterX = imgWidth * 0.66; // 약간 오른쪽
+
       const eyeGap = imgWidth * 0.05; // 눈 사이 간격 (5% - 거의 붙어있음)
+
       const eyeLeft = eyeCenterX - eyeGap; // 왼쪽 눈 중심
+
       const eyeRight = eyeCenterX + eyeGap; // 오른쪽 눈 중심
 
       
@@ -243,7 +258,7 @@ function SplashScreen() {
 
                   alt="Wally" 
 
-                  className="w-auto h-auto max-w-[95vw] max-h-[95vh] object-contain"
+                  className="w-auto h-auto max-w-[80vw] max-h-[80vh] md:max-w-[80vw] md:max-h-[80vh] object-contain"
 
                   style={{ display: 'block', position: 'relative', zIndex: 5 }}
 
