@@ -26,6 +26,14 @@ const AI_CONFIG = {
     avatar: '/future.png',
     gradient: 'from-blue-400 to-cyan-400',
     initialMessage: "Hey... it's me, you from 2034 ⏰ I traveled back in time to warn you. Every purchase you make now affects my future. Let's make sure I don't end up broke, okay? 🕐"
+  },
+  advisor: {
+    id: 'advisor',
+    name: 'Advisor',
+    description: 'Your smart spending analyst',
+    avatar: '/catty.png', // Placeholder - 나중에 advisor 전용 이미지로 교체 가능
+    gradient: 'from-green-400 to-emerald-400',
+    initialMessage: "Hi! I'm your spending advisor 📊 I analyze your spending patterns and provide insights to help you make better financial decisions. Ask me anything about your spending habits!"
   }
 };
 
@@ -34,13 +42,15 @@ function ChatPage({ transactions }) {
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [aiEnabled, setAiEnabled] = useState({
     catty: true,
-    futureme: true
+    futureme: true,
+    advisor: true
   });
   const [activeProfileInfo, setActiveProfileInfo] = useState(null);
   const [infoCardStyles, setInfoCardStyles] = useState(null);
   // Use special IDs for initial messages to avoid conflicts
   const INITIAL_CATTY_ID = -1;
   const INITIAL_FUTUREME_ID = -2;
+  const INITIAL_ADVISOR_ID = -3;
   
   const [messages, setMessages] = useState(() => [
     {
@@ -53,6 +63,12 @@ function ChatPage({ transactions }) {
       id: INITIAL_FUTUREME_ID,
       type: 'futureme',
       text: AI_CONFIG.futureme.initialMessage,
+      time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    },
+    {
+      id: INITIAL_ADVISOR_ID,
+      type: 'advisor',
+      text: AI_CONFIG.advisor.initialMessage,
       time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
     }
   ]);
@@ -245,7 +261,7 @@ function ChatPage({ transactions }) {
         .from('messages')
         .select('*')
         .eq('user_id', user.id)
-        .or('ai_type.eq.catty,ai_type.eq.futureme,ai_type.is.null')
+        .or('ai_type.eq.catty,ai_type.eq.futureme,ai_type.eq.advisor,ai_type.is.null')
         .order('created_at', { ascending: false })  // Get newest first
         .limit(50);  // Limit to 50 most recent messages
 
@@ -311,6 +327,8 @@ function ChatPage({ transactions }) {
         const hasCattyInitial = formattedMessages.some(m => m.id === INITIAL_CATTY_ID && m.type === 'catty');
         // Check for exact match: id === INITIAL_FUTUREME_ID AND type === 'futureme'
         const hasFuturemeInitial = formattedMessages.some(m => m.id === INITIAL_FUTUREME_ID && m.type === 'futureme');
+        // Check for exact match: id === INITIAL_ADVISOR_ID AND type === 'advisor'
+        const hasAdvisorInitial = formattedMessages.some(m => m.id === INITIAL_ADVISOR_ID && m.type === 'advisor');
         
         if (!hasCattyInitial) {
           formattedMessages.unshift({
@@ -325,6 +343,14 @@ function ChatPage({ transactions }) {
             id: INITIAL_FUTUREME_ID,
             type: 'futureme',
             text: AI_CONFIG.futureme.initialMessage,
+            time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+          });
+        }
+        if (!hasAdvisorInitial) {
+          formattedMessages.unshift({
+            id: INITIAL_ADVISOR_ID,
+            type: 'advisor',
+            text: AI_CONFIG.advisor.initialMessage,
             time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
           });
         }
@@ -674,10 +700,311 @@ function ChatPage({ transactions }) {
       thisMonthTotal = 0, thisMonthByCategory = {}, thisMonthItemCounts = {}, thisMonthExpenses = [],
       goalPeriodTotal = 0, goalPeriodExpenses = [], expensesByDay = {}, avgDailySpending = 0, daysWithSpending = 0,
       target = 5000, period = 'month', daysInPeriod = 30, spendingPercentage = 0, saved = 0, dailyGoal = 0,
-      goalStartDate = '', goalEndDate = '', currentSpendingStatus = 'good', recentTransactions = []
+      goalStartDate = '', goalEndDate = '', currentSpendingStatus = 'good', recentTransactions = [],
+      expensesByDayOfWeek = {}, avgByDayOfWeek = {}, categoryMonthlyTotals = {}, 
+      thisWeekCategoryAvg = {}, thisMonthCategoryAvg = {}
     } = spendingContext || {};
 
-    if (aiId === 'futureme') {
+    if (aiId === 'advisor') {
+      // Calculate average spending for comparison
+      const avgWeeklySpending = thisWeekTotal;
+      const avgMonthlySpending = thisMonthTotal;
+      const avgCategorySpending = Object.values(expensesByCategory).reduce((sum, val) => sum + val, 0) / Math.max(1, Object.keys(expensesByCategory).length);
+      
+      // Find top spending mood
+      const topMoodSpending = Object.entries(expensesByMood).sort((a, b) => b[1] - a[1])[0];
+      const topMoodReason = topMoodSpending ? `The reason you spent the most this week: ${topMoodSpending[0]} (${topMoodSpending[0] === 'sad' ? 'Stress' : topMoodSpending[0] === 'happy' ? 'Happiness' : topMoodSpending[0] === 'neutral' ? 'Neutral' : 'Calm'}) - $${safeFormat(topMoodSpending[1])}` : 'No mood data available';
+      
+      // Find day with highest spending
+      const topDaySpending = Object.entries(expensesByDayOfWeek).sort((a, b) => b[1].total - a[1].total)[0];
+      const topDayPattern = topDaySpending ? `${topDaySpending[0]} is always your high-spending day. Average: $${safeFormat(topDaySpending[1].total / Math.max(1, topDaySpending[1].count))}` : 'No clear day pattern';
+      
+      // Calculate current date and special events
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      const currentMonth = today.getMonth() + 1; // 1-12
+      const currentDate = today.getDate();
+      
+      // Helper functions for date calculations
+      const getThanksgivingDate = (year) => {
+        // Thanksgiving is 4th Thursday of November
+        const nov1 = new Date(year, 10, 1); // Month 10 = November
+        const firstThursday = (11 - nov1.getDay()) % 7;
+        return new Date(year, 10, 1 + firstThursday + 21); // 4th Thursday
+      };
+      
+      const getNthSunday = (year, month, n) => {
+        // Get nth Sunday of a month (month is 0-indexed)
+        const firstDay = new Date(year, month, 1);
+        const firstSunday = 1 + (7 - firstDay.getDay()) % 7;
+        return new Date(year, month, firstSunday + (n - 1) * 7);
+      };
+      
+      const daysUntil = (date) => Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const isNear = (days, range = 7) => days >= -range && days <= range;
+      
+      // Calculate all special dates
+      const events = [];
+      
+      // January
+      const newYear = new Date(currentYear, 0, 1); // January 1
+      events.push({ date: newYear, name: 'New Year\'s Day', emoji: '🎊', category: 'holiday', range: 3, desc: 'New Year celebrations - expect increased spending on celebrations, dining, and travel' });
+      
+      // February
+      const valentines = new Date(currentYear, 1, 14); // February 14
+      events.push({ date: valentines, name: 'Valentine\'s Day', emoji: '💝', category: 'holiday', range: 7, desc: 'Gift and dining expenses typically increase' });
+      
+      // March
+      const whiteDay = new Date(currentYear, 2, 14); // March 14
+      events.push({ date: whiteDay, name: 'White Day', emoji: '🍫', category: 'holiday', range: 7, desc: 'Gift expenses may increase' });
+      
+      // May
+      const childrensDay = new Date(currentYear, 4, 5); // May 5
+      events.push({ date: childrensDay, name: 'Children\'s Day', emoji: '🎈', category: 'holiday', range: 7, desc: 'Entertainment and gift expenses for children may increase' });
+      
+      const mothersDay = getNthSunday(currentYear, 4, 2); // 2nd Sunday of May
+      events.push({ date: mothersDay, name: 'Mother\'s Day', emoji: '🌷', category: 'holiday', range: 7, desc: 'Gift and dining expenses typically increase' });
+      
+      // June
+      const fathersDay = getNthSunday(currentYear, 5, 3); // 3rd Sunday of June
+      events.push({ date: fathersDay, name: 'Father\'s Day', emoji: '👔', category: 'holiday', range: 7, desc: 'Gift and dining expenses typically increase' });
+      
+      // July
+      const primeDay = new Date(currentYear, 6, 16); // Approximate - Amazon Prime Day is usually mid-July
+      events.push({ date: primeDay, name: 'Amazon Prime Day', emoji: '📦', category: 'shopping', range: 14, desc: 'Major online shopping event - expect higher retail spending' });
+      
+      // August-September (Back to School)
+      const backToSchool = new Date(currentYear, 7, 20); // Late August
+      events.push({ date: backToSchool, name: 'Back to School Season', emoji: '📚', category: 'shopping', range: 30, desc: 'School supplies and clothing expenses typically increase' });
+      
+      // October
+      const halloween = new Date(currentYear, 9, 31); // October 31
+      events.push({ date: halloween, name: 'Halloween', emoji: '🎃', category: 'holiday', range: 7, desc: 'Costume, candy, and party expenses may increase' });
+      
+      // November
+      const thanksgiving = getThanksgivingDate(currentYear);
+      events.push({ date: thanksgiving, name: 'Thanksgiving', emoji: '🦃', category: 'holiday', range: 7, desc: 'Food and grocery spending typically increases significantly' });
+      
+      const blackFriday = new Date(thanksgiving);
+      blackFriday.setDate(thanksgiving.getDate() + 1);
+      events.push({ date: blackFriday, name: 'Black Friday', emoji: '🛍️', category: 'shopping', range: 7, desc: 'Major shopping day - expect significantly higher retail spending' });
+      
+      // December
+      const cyberMonday = new Date(blackFriday);
+      cyberMonday.setDate(blackFriday.getDate() + 3); // Monday after Black Friday
+      events.push({ date: cyberMonday, name: 'Cyber Monday', emoji: '💻', category: 'shopping', range: 7, desc: 'Major online shopping day - expect higher e-commerce spending' });
+      
+      const christmas = new Date(currentYear, 11, 25); // December 25
+      events.push({ date: christmas, name: 'Christmas', emoji: '🎄', category: 'holiday', range: 30, desc: 'Gift and celebration spending typically increases throughout December' });
+      
+      // Year-end/New Year
+      const newYearEve = new Date(currentYear, 11, 31); // December 31
+      events.push({ date: newYearEve, name: 'New Year\'s Eve', emoji: '🎉', category: 'holiday', range: 3, desc: 'Celebration expenses may increase' });
+      
+      // Calculate days until/from events and filter nearby ones
+      const nearbyEvents = events
+        .map(event => ({
+          ...event,
+          daysUntil: daysUntil(event.date),
+          daysUntilNext: event.date.getTime() < today.getTime() ? daysUntil(new Date(event.date.getFullYear() + 1, event.date.getMonth(), event.date.getDate())) : daysUntil(event.date)
+        }))
+        .filter(event => isNear(event.daysUntil, event.range) || isNear(event.daysUntilNext, event.range))
+        .sort((a, b) => Math.abs(a.daysUntil) - Math.abs(b.daysUntil));
+      
+      // Build event context
+      let eventContext = '';
+      if (nearbyEvents.length > 0) {
+        eventContext = '\n**🎉 Current Special Events & Dates:**\n';
+        nearbyEvents.forEach(event => {
+          const days = event.daysUntil;
+          if (days === 0) {
+            eventContext += `- TODAY is ${event.name}! ${event.emoji} ${event.desc}\n`;
+          } else if (days > 0 && days <= event.range) {
+            eventContext += `- ${event.name} is in ${days} day(s) (${event.date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}). ${event.emoji} ${event.desc}\n`;
+          } else if (days < 0 && Math.abs(days) <= event.range) {
+            eventContext += `- ${event.name} was ${Math.abs(days)} day(s) ago. ${event.emoji} Related expenses may have been higher.\n`;
+          }
+        });
+      }
+      
+      // General seasonal context
+      let seasonalContext = '';
+      const monthContexts = {
+        1: '**📅 Current Period: January** - New Year period. Celebration, travel, and resolution-related expenses may increase.\n',
+        2: '**📅 Current Period: February** - Valentine\'s Day month. Gift and dining expenses typically increase.\n',
+        3: '**📅 Current Period: March** - Spring season begins. White Day and spring shopping may increase expenses.\n',
+        4: '**📅 Current Period: April** - Spring season. Seasonal shopping and activities may increase spending.\n',
+        5: '**📅 Current Period: May** - Mother\'s Day and Children\'s Day. Gift and family-related expenses typically increase.\n',
+        6: '**📅 Current Period: June** - Father\'s Day and early summer. Gift and seasonal expenses may increase.\n',
+        7: '**📅 Current Period: July** - Summer season. Prime Day and summer activities may increase spending.\n',
+        8: '**📅 Current Period: August** - Back to School season begins. School supplies and clothing expenses typically increase.\n',
+        9: '**📅 Current Period: September** - Back to School season continues. Educational expenses may be higher.\n',
+        10: '**📅 Current Period: October** - Fall season. Halloween and autumn activities may increase spending.\n',
+        11: '**📅 Current Period: November** - Thanksgiving and start of holiday shopping season. Food and shopping expenses typically increase.\n',
+        12: '**📅 Current Period: December** - Holiday season with Christmas. Gift, food, and celebration spending typically increases significantly.\n'
+      };
+      seasonalContext = monthContexts[currentMonth] || '';
+      if (seasonalContext) seasonalContext = '\n' + seasonalContext;
+      
+      return `You are a smart spending advisor who analyzes spending patterns and provides meaningful insights and actionable advice.
+
+📊 Your role:
+- Be friendly and conversational - respond naturally to greetings and casual chat
+- ONLY provide spending analysis when the user asks about spending, expenses, purchases, or financial decisions
+- Analyze spending data to identify patterns and trends (when asked)
+- Provide fairness checks (is this spending reasonable?) when relevant
+- Compare current spending vs averages and identify anomalies (when asked)
+- Recognize future investment categories (education, certifications, etc.)
+- Derive meaningful insights, NOT just repeat transaction data
+- Give specific, actionable advice based on analysis
+- Keep responses concise and natural
+
+💬 Communication Style:
+- For greetings (안녕, Hello, Hi, etc.): Respond warmly but briefly, no analysis
+- For casual chat: Keep it friendly and conversational, wait for spending-related questions
+- For spending questions (사려고 하는데, want to buy, should I buy, etc.): Provide detailed analysis and insights
+- Match the user's language (Korean or English)
+
+💡 Analysis Guidelines (ONLY when user asks about spending):
+
+**1. Fairness Check & Spending Appropriateness:**
+- Compare current week/month spending to historical averages
+- Identify if spending is higher/lower than usual
+- Provide specific thresholds (e.g., "Today, $6 or below is fine")
+- Recognize when spending is justified (e.g., education as investment)
+
+**2. Pattern Recognition:**
+- Day of week patterns: "Thursday is always your overspending day"
+- Mood-based patterns: "This week's high spending reason: Stress (Sad)"
+- Category accumulation: "Delivery fees accumulated: $54 this month"
+- Time-based trends: Compare this week vs previous weeks/months
+
+**3. Meaningful Insights (DO NOT just list transactions):**
+- Instead of: "You spent $20 on coffee, $15 on food, $30 on transport"
+- Do: "Your cafe spending is 20% higher than average this week. Today, try a menu under $6!"
+- Instead of: "You bought a certificate course for $200"
+- Do: "This certificate/education expense is a future investment category. Good spending decision!"
+
+**4. Future Investment Recognition:**
+- Education, certifications, courses, skill development
+- Health and wellness investments
+- Necessary equipment for income generation
+- These should be praised, not criticized
+
+**5. Seasonal Event & Holiday Awareness:**
+- Consider special events and holidays when analyzing spending:
+  * New Year (January 1) - Celebration expenses
+  * Valentine's Day (February 14) - Gift and dining expenses
+  * White Day (March 14) - Gift expenses
+  * Children's Day (May 5) - Entertainment and gift expenses
+  * Mother's Day (May, 2nd Sunday) - Gift and dining expenses
+  * Father's Day (June, 3rd Sunday) - Gift and dining expenses
+  * Amazon Prime Day (July) - Major online shopping event
+  * Back to School (August-September) - School supplies and clothing expenses
+  * Halloween (October 31) - Costume, candy, and party expenses
+  * Thanksgiving (late November) - Higher food/grocery spending is normal
+  * Black Friday (day after Thanksgiving) - Major shopping day, expect higher retail spending
+  * Cyber Monday (Monday after Black Friday) - Major online shopping day
+  * Christmas (December 25) - Gift and celebration spending is expected throughout December
+  * New Year's Eve (December 31) - Celebration expenses
+- Adjust analysis context based on proximity to these events
+- During these periods, higher spending in relevant categories is normal and understandable
+${eventContext || ''}${seasonalContext || ''}
+
+📈 SPENDING DATA FOR ANALYSIS:
+
+**This Week Summary:**
+- Total: $${safeFormat(thisWeekTotal)}
+- By Category: ${JSON.stringify(thisWeekByCategory, null, 2)}
+- Average per day: $${safeFormat(thisWeekTotal / 7)}
+
+**This Month Summary:**
+- Total: $${safeFormat(thisMonthTotal)}
+- By Category: ${JSON.stringify(thisMonthByCategory, null, 2)}
+- Category Monthly Totals (accumulated): ${JSON.stringify(categoryMonthlyTotals, null, 2)}
+- Average per day: $${safeFormat(thisMonthTotal / Math.max(1, new Date().getDate()))}
+
+**Pattern Analysis Data:**
+- Day of Week Spending: ${JSON.stringify(expensesByDayOfWeek, null, 2)}
+- Average by Day of Week: ${JSON.stringify(avgByDayOfWeek, null, 2)}
+- Mood-Based Spending: ${JSON.stringify(expensesByMood, null, 2)}
+${topMoodReason ? `- ${topMoodReason}` : ''}
+${topDayPattern ? `- ${topDayPattern}` : ''}
+
+**Category Averages:**
+- This Week Category Average (per day): ${JSON.stringify(thisWeekCategoryAvg, null, 2)}
+- This Month Category Average (per day): ${JSON.stringify(thisMonthCategoryAvg, null, 2)}
+
+**Recent Transactions (for context):**
+${JSON.stringify(thisWeekExpenses.slice(0, 10).map(t => ({
+  date: t.date,
+  description: t.description,
+  amount: t.amount,
+  category: t.category,
+  mood: t.mood
+})), null, 2)}
+
+**Goal Status:**
+- Target: $${target} for ${period}
+- Current: ${spendingPercentage}% spent
+- Daily Goal: $${dailyGoal}
+
+💬 Response Guidelines:
+- CRITICAL: Respond in the SAME language as the user's message
+- DO NOT provide analysis for greetings or casual conversation
+- ONLY analyze when user asks about:
+  * Purchases they want to make ("니트 사려고 하는데", "want to buy", "should I buy")
+  * Spending patterns ("내 지출 어때?", "how is my spending?")
+  * Financial decisions or expenses
+- For greetings: Simple, friendly response (1 sentence max)
+- For spending questions: Provide detailed analysis (2-4 sentences)
+- Always derive insights - never just repeat transaction data
+- Use specific numbers and percentages when making comparisons
+- Provide actionable advice with clear thresholds
+- Praise good spending decisions (especially investments)
+- Point out patterns clearly (day of week, mood-based, etc.)
+- Consider seasonal events and holidays when analyzing spending - higher spending during special events (New Year, Valentine's Day, Halloween, Black Friday, Christmas, etc.) is normal and expected
+- When near special events, provide context-aware analysis (e.g., "Halloween is coming up, so costume/candy expenses are expected" or "It's Black Friday season, so increased shopping spending is normal")
+- Recognize that holiday seasons naturally increase spending - don't treat this as unusual behavior
+
+🎯 Example Responses:
+
+**For Greetings (NO analysis):**
+User: "안녕" / "Hello"
+You: "안녕하세요! 무엇을 도와드릴까요?" / "Hi! How can I help you today?"
+
+**For Casual Chat (NO analysis):**
+User: "오늘 날씨 좋네" / "Nice weather today"
+You: "네, 정말 좋은 날씨네요!" / "Yes, beautiful day!"
+
+**For Spending Questions (WITH analysis):**
+
+**Fairness Check:**
+User: "니트 사려고 하는데 어때?"
+You: "이번 주 카페 지출이 평균보다 20% 높아요. 오늘은 6달러 이하 메뉴면 괜찮아요!"
+
+**Pattern Recognition:**
+User: "내 소비 패턴 어떻게 돼?"
+You: "목요일은 항상 과소비합니다. 평균 목요일 지출: $${topDaySpending ? safeFormat(topDaySpending[1].total / Math.max(1, topDaySpending[1].count)) : '0'}"
+
+**Mood Analysis:**
+User: "왜 이번 주에 많이 쓴 거야?"
+You: "이번 주 가장 많이 쓴 이유: 스트레스(Sad). 대체 스트레스 해소 방법을 찾아보세요."
+
+**Category Accumulation:**
+User: "배달비 얼마나 썼어?"
+You: "배달비 누적 지출: 이번 달 54달러. 식사 계획을 세우면 줄일 수 있어요."
+
+**Future Investment:**
+User: "자격증 시험 등록비 써도 돼?"
+You: "이건 자격증/교육 지출이라 미래 투자 카테고리예요. 오히려 잘한 소비예요!"
+
+**Comparison Analysis:**
+User: "내 쇼핑 지출 어때?"
+You: "이번 주 쇼핑 지출 ($${safeFormat(thisWeekByCategory['shopping'] || 0)})은 평균 일일 지출보다 ${thisWeekByCategory['shopping'] && avgCategorySpending ? Math.round(((thisWeekByCategory['shopping'] / 7) / avgCategorySpending) * 100) : 0}% 높아요."
+
+User message: ${userMessage}`;
+    } else if (aiId === 'futureme') {
       return `You are the user's future self from the year 2034. You've traveled back in time to warn them about their spending habits.
 
 ⏰ Your personality:
@@ -1065,6 +1392,52 @@ User message: ${userMessage}`;
       const daysWithSpending = Object.keys(expensesByDay).length;
       const avgDailySpending = daysWithSpending > 0 ? goalPeriodTotal / daysWithSpending : 0;
       
+      // Group expenses by day of week (0=Sunday, 1=Monday, ...)
+      const expensesByDayOfWeek = {};
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      expenses.forEach(expense => {
+        const expenseDate = parseExpenseDate(expense.date);
+        if (expenseDate) {
+          const dayOfWeek = expenseDate.getDay();
+          const dayName = dayNames[dayOfWeek];
+          if (!expensesByDayOfWeek[dayName]) {
+            expensesByDayOfWeek[dayName] = { total: 0, count: 0, transactions: [] };
+          }
+          expensesByDayOfWeek[dayName].total += Math.abs(expense.amount);
+          expensesByDayOfWeek[dayName].count += 1;
+          expensesByDayOfWeek[dayName].transactions.push({
+            date: expense.date,
+            description: expense.description,
+            amount: Math.abs(expense.amount),
+            category: expense.category || 'none',
+            mood: expense.mood || 'none'
+          });
+        }
+      });
+      
+      // Calculate average spending per day of week
+      const avgByDayOfWeek = {};
+      Object.keys(expensesByDayOfWeek).forEach(dayName => {
+        const data = expensesByDayOfWeek[dayName];
+        avgByDayOfWeek[dayName] = data.count > 0 ? data.total / data.count : 0;
+      });
+      
+      // Calculate category monthly totals (for accumulated spending analysis)
+      const categoryMonthlyTotals = thisMonthByCategory || {};
+      
+      // Calculate this week category averages vs previous periods
+      const thisWeekCategoryAvg = {};
+      Object.keys(thisWeekByCategory).forEach(cat => {
+        thisWeekCategoryAvg[cat] = thisWeekByCategory[cat] / 7; // Average per day
+      });
+      
+      // Calculate this month category averages
+      const thisMonthCategoryAvg = {};
+      const daysInMonth = today.getDate(); // Days passed in current month
+      Object.keys(thisMonthByCategory).forEach(cat => {
+        thisMonthCategoryAvg[cat] = daysInMonth > 0 ? thisMonthByCategory[cat] / daysInMonth : 0;
+      });
+      
       const spendingContext = {
         // Overall Spending Summary
         balance: balance,
@@ -1129,6 +1502,15 @@ User message: ${userMessage}`;
         expensesByDay,
         avgDailySpending,
         daysWithSpending,
+        
+        // Day of Week Analysis
+        expensesByDayOfWeek,
+        avgByDayOfWeek,
+        
+        // Category Analysis
+        categoryMonthlyTotals,
+        thisWeekCategoryAvg,
+        thisMonthCategoryAvg,
         
         // Analytics Data
         target,

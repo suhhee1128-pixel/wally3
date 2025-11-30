@@ -19,10 +19,10 @@ CREATE TABLE IF NOT EXISTS messages (
   id BIGSERIAL PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   message_id BIGINT NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('user', 'catty', 'futureme')),
+  type TEXT NOT NULL CHECK (type IN ('user', 'catty', 'futureme', 'advisor')),
   text TEXT NOT NULL,
   time TEXT,
-  ai_type TEXT CHECK (ai_type IN ('catty', 'futureme') OR ai_type IS NULL),
+  ai_type TEXT CHECK (ai_type IN ('catty', 'futureme', 'advisor') OR ai_type IS NULL),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id, message_id, ai_type)
 );
