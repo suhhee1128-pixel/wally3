@@ -22,23 +22,20 @@ function SplashScreen() {
 
       
 
-      // 화면 크기 기준으로 눈 위치 계산 (object-fit: cover 고려)
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
+      // 이미지의 실제 렌더링 크기 가져오기
       const imgRect = img.getBoundingClientRect();
       
-      // object-fit: cover일 때 실제 이미지 표시 영역 계산
-      // 이미지가 화면을 가득 채우므로 화면 크기를 기준으로 계산
-      const imgWidth = viewportWidth;
-      const imgHeight = viewportHeight;
-
-      // 눈 크기: 화면 너비의 약 20%
-      const eyeSize = imgWidth * 0.20;
-
-      // 눈 위치: 화면 상단 중앙 (상단 35% 위치, 중앙 기준)
-      const eyeTop = imgHeight * 0.35;
-      const eyeCenterX = imgWidth * 0.5; // 화면 중앙
-      const eyeGap = imgWidth * 0.04; // 눈 사이 간격 (4% - 거의 붙어있음)
+      // 이미지 크기 대비 눈 위치 계산
+      const imgWidth = imgRect.width;
+      const imgHeight = imgRect.height;
+      
+      // 눈 크기: 이미지 너비의 약 25%
+      const eyeSize = imgWidth * 0.25;
+      
+      // 눈 위치: 상단 중앙 (이미지 설명 기준)
+      const eyeTop = imgHeight * 0.31; // 상단 31% 위치
+      const eyeCenterX = imgWidth * 0.66; // 약간 오른쪽
+      const eyeGap = imgWidth * 0.05; // 눈 사이 간격 (5% - 거의 붙어있음)
       const eyeLeft = eyeCenterX - eyeGap; // 왼쪽 눈 중심
       const eyeRight = eyeCenterX + eyeGap; // 오른쪽 눈 중심
 
