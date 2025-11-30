@@ -97,11 +97,8 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
   // Calculate actual data from transactions
   const expenses = transactions.filter(t => t.type === 'expense');
   const incomes = transactions.filter(t => t.type === 'income');
+  // totalExpenses는 전체 지출 (다른 용도로 사용 가능)
   const totalExpenses = expenses.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  const saved = Math.max(0, target - totalExpenses);
-  // Calculate spending percentage (지출 기준)
-  const spendingPercentage = target > 0 ? Math.round((totalExpenses / target) * 100) : 0;
-  const savedPercentage = target > 0 ? Math.round((saved / target) * 100) : 0;
   
   // Calculate progress bar color based on spending percentage
   // spendingPercentage = 지출한 금액 비율 (높을수록 많이 씀 = 나쁨)
@@ -304,42 +301,11 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
   const startTimestamp = selectedStartDate.getTime();
   const endTimestamp = calendarEndDate.getTime();
   
-  // Calculate spending from start date to today (inclusive)
+  // Calculate spending from start date to today (inclusive) within the goal period
   let actualSpendingToDate = 0;
   expenses.forEach(expense => {
     if (expense.date) {
-      // Parse expense date
-      let expenseDate = null;
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const dateMatch = expense.date.match(/(\w+)\s+(\d+)/);
-      if (dateMatch) {
-        const monthName = dateMatch[1];
-        const day = parseInt(dateMatch[2], 10);
-        const monthIndex = monthNames.findIndex(m => m === monthName);
-        if (monthIndex !== -1) {
-          // Try to determine the year
-          const todayMonth = new Date().getMonth();
-          const todayYear = new Date().getFullYear();
-          let expenseYear = todayYear;
-          if (monthIndex > todayMonth) {
-            expenseYear = todayYear - 1;
-          }
-          expenseDate = new Date(expenseYear, monthIndex, day);
-          expenseDate.setHours(0, 0, 0, 0);
-        }
-      }
-      
-      // Also try MM/DD format
-      if (!expenseDate) {
-        const mmddMatch = expense.date.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
-        if (mmddMatch) {
-          const month = parseInt(mmddMatch[1]) - 1;
-          const day = parseInt(mmddMatch[2]);
-          const year = mmddMatch[3] ? parseInt(mmddMatch[3]) : new Date().getFullYear();
-          expenseDate = new Date(year, month, day);
-          expenseDate.setHours(0, 0, 0, 0);
-        }
-      }
+      const expenseDate = parseExpenseDate(expense.date);
       
       // If expense date is within goal period and up to today, add to actual spending
       if (expenseDate) {
@@ -354,6 +320,11 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
   // Calculate remaining budget and days
   const remainingBudget = Math.max(0, target - actualSpendingToDate);
   const remainingDays = Math.max(1, Math.ceil((endTimestamp - todayTimestamp) / (1000 * 60 * 60 * 24)) + 1); // +1 to include today
+  
+  // Calculate spending percentage based on actual spending in goal period
+  const saved = Math.max(0, target - actualSpendingToDate);
+  const spendingPercentage = target > 0 ? Math.round((actualSpendingToDate / target) * 100) : 0;
+  const savedPercentage = target > 0 ? Math.round((saved / target) * 100) : 0;
   
   // Calculate dynamic daily goal: remaining budget divided by remaining days
   // If we're past the end date, use the original calculation
@@ -1175,7 +1146,7 @@ function AnalyticsPage({ transactions = [], onDateClick, autoOpenTracker = false
             className="absolute left-1/2 text-center w-full flex flex-col items-center"
             style={{ top: '72%', transform: 'translate(-50%, -50%)' }}
           >
-            <p className="text-xs text-white/70 mb-1">${totalExpenses.toFixed(2)} Spent</p>
+            <p className="text-xs text-white/70 mb-1">${actualSpendingToDate.toFixed(2)} Spent</p>
             <p className="text-4xl font-bold text-white mb-1">{spendingPercentage}%</p>
             <p className="text-sm text-white/70">Target • ${target}</p>
           </div>
