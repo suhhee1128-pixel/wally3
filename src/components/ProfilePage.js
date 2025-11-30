@@ -9,6 +9,7 @@ function ProfilePage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [nickname, setNickname] = useState('');
   const [profileImageUrl, setProfileImageUrl] = useState(null);
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
@@ -75,13 +76,19 @@ function ProfilePage() {
   const handleManageProfile = () => {
     setNickname(displayName);
     setProfileImageUrl(currentProfileImage);
+    setSelectedImageFile(null);
     setShowEditModal(true);
   };
 
   // 프로필 사진 선택
   const handleImageSelect = (e) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    console.log('File selected:', file);
+    
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
 
     // 이미지 파일인지 확인
     if (!file.type.startsWith('image/')) {
@@ -95,11 +102,23 @@ function ProfilePage() {
       return;
     }
 
+    // 선택한 파일을 state에 저장 (나중에 업로드할 때 사용)
+    setSelectedImageFile(file);
+    console.log('Selected file saved to state:', file.name, file.size);
+
+    // 미리보기를 위해 FileReader로 읽기
     setUploading(true);
     const reader = new FileReader();
     reader.onloadend = () => {
+      console.log('Image preview loaded, size:', reader.result?.length);
       setProfileImageUrl(reader.result);
       setUploading(false);
+    };
+    reader.onerror = (error) => {
+      console.error('Error reading file:', error);
+      alert('이미지를 읽는 중 오류가 발생했습니다.');
+      setUploading(false);
+      setSelectedImageFile(null);
     };
     reader.readAsDataURL(file);
   };
@@ -114,8 +133,11 @@ function ProfilePage() {
       // 사용자 ID를 폴더명으로 사용하여 RLS 정책과 일치시킴
       const filePath = `${user.id}/${fileName}`;
 
-      // Supabase Storage에 업로드
-      const { error: uploadError } = await supabase.storage
+      console.log('Attempting to upload to:', filePath);
+      console.log('File details:', { name: file.name, size: file.size, type: file.type });
+      
+      // Supabase Storage에 업로드 (bucket 확인 없이 바로 시도)
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -124,10 +146,36 @@ function ProfilePage() {
 
       if (uploadError) {
         console.error('Storage upload failed:', uploadError);
-        // Storage bucket이 없거나 권한 문제일 수 있음
-        alert('사진 업로드에 실패했습니다. Supabase Storage 설정을 확인해주세요.');
+        console.error('Upload error details:', {
+          message: uploadError.message,
+          statusCode: uploadError.statusCode,
+          error: uploadError.error,
+          filePath: filePath,
+          userId: user.id,
+          fileName: fileName
+        });
+        
+        // 더 구체적인 에러 메시지
+        let errorMessage = '사진 업로드에 실패했습니다.\n\n';
+        if (uploadError.message) {
+          if (uploadError.message.includes('Bucket not found') || uploadError.message.includes('bucket')) {
+            errorMessage += 'Storage bucket이 설정되지 않았습니다.\nSupabase Dashboard > Storage에서 avatars bucket을 생성해주세요.';
+          } else if (uploadError.message.includes('row-level security') || uploadError.message.includes('RLS')) {
+            errorMessage += '업로드 권한이 없습니다.\nStorage RLS 정책을 확인하거나 setup_storage.sql을 실행해주세요.';
+          } else if (uploadError.message.includes('duplicate') || uploadError.message.includes('already exists')) {
+            // 중복 파일 오류는 무시하고 계속 진행 (upsert가 있으므로)
+            console.log('File already exists, but upsert should handle this');
+          } else {
+            errorMessage += `오류: ${uploadError.message}`;
+          }
+        } else {
+          errorMessage += '자세한 내용은 브라우저 콘솔을 확인해주세요.';
+        }
+        alert(errorMessage);
         return null;
       }
+      
+      console.log('Upload successful:', uploadData);
 
       // Public URL 가져오기
       const { data: { publicUrl } } = supabase.storage
@@ -157,13 +205,12 @@ function ProfilePage() {
 
     setSaving(true);
     try {
-      let avatarUrl = profileImageUrl || currentProfileImage;
+      let avatarUrl = currentProfileImage;
 
       // 새 이미지 파일이 선택된 경우에만 업로드 시도
-      const selectedFile = fileInputRef.current?.files?.[0];
-      if (selectedFile && profileImageUrl?.startsWith('data:')) {
-        console.log('Uploading new profile image...');
-        const uploadedUrl = await uploadProfileImage(selectedFile);
+      if (selectedImageFile) {
+        console.log('Uploading new profile image...', selectedImageFile.name);
+        const uploadedUrl = await uploadProfileImage(selectedImageFile);
         if (uploadedUrl) {
           avatarUrl = uploadedUrl;
           console.log('Image uploaded successfully:', uploadedUrl);
@@ -172,7 +219,7 @@ function ProfilePage() {
           // 업로드 실패 시 기존 이미지 유지
           avatarUrl = currentProfileImage;
         }
-      } else if (!profileImageUrl || profileImageUrl === currentProfileImage) {
+      } else {
         // 이미지가 변경되지 않은 경우 기존 이미지 유지
         avatarUrl = currentProfileImage;
       }
@@ -248,6 +295,12 @@ function ProfilePage() {
       // 성공 메시지
       alert('프로필이 업데이트되었습니다!');
       setShowEditModal(false);
+      
+      // 파일 선택 초기화
+      setSelectedImageFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       
       // 프로필 다시 로드하여 최신 데이터 가져오기
       const { data: reloadedProfile } = await supabase
@@ -505,7 +558,14 @@ function ProfilePage() {
             {/* 버튼 */}
             <div className="flex gap-3">
               <button
-                onClick={() => setShowEditModal(false)}
+                onClick={() => {
+                  setShowEditModal(false);
+                  setSelectedImageFile(null);
+                  setProfileImageUrl(currentProfileImage);
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                  }
+                }}
                 className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
               >
                 취소
